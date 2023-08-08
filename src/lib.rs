@@ -1,5 +1,4 @@
-mod genetic_training;
-mod examples;
+pub mod genetic_training;
 
 
 #[cfg(test)]

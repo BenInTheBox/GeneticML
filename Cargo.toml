@@ -1,5 +1,5 @@
 [package]
-name = "genertic_rl"
+name = "genetic_rl"
 version = "0.1.0"
 edition = "2021"
 authors = ["Benoit Fontannaz <benoit.fontzannaz@gmail.com>"]
