@@ -39,6 +39,9 @@ where
     (0..(nb_individus-pop)).for_each(|i|{
         population.push(population[i%pop].mutate(mutation_rate))
     });
+    for agent in &mut population {
+        agent.reset();
+    }
     population
 }
 
@@ -67,7 +70,7 @@ where
         println!("Generation: {}     Mutation rate: {}", gen, (mutation_rate * 10000.0).round() / 10000.0);
         let results = run_generation(population, simulation);
 
-        let mut surviviors: Vec<(A, f64)> = results.into_iter().take(nb_keep).collect();
+        let surviviors: Vec<(A, f64)> = results.into_iter().take(nb_keep).collect();
 
         let scores: Vec<f64> = surviviors.iter().map(|res| {
             (res.1 * 10000.0).round() / 10000.0
@@ -111,7 +114,7 @@ where
     let model_agent = A::new();
     let mut sim = S::new(model_agent);
 
-    let mut population: Vec<A> = (0..nb_individus).map(|_| {
+    let population: Vec<A> = (0..nb_individus).map(|_| {
         A::new()
         }).collect();
 
