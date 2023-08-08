@@ -9,10 +9,9 @@ use std::f64::consts::PI;
 
 const DT: f64 = 0.01; // Time step for simulation
 const TOTAL_TIME: f64 = 3.0; // Total simulation time
-const MAX_U: f64 = 9.;  // Max kart acceleration
+const MAX_U: f64 = 9.; // Max kart acceleration
 
-const MAX_STARTING_ANGLE: f64 = PI/4.; // Maximum pole init*ial angle
-
+const MAX_STARTING_ANGLE: f64 = PI / 4.; // Maximum pole init*ial angle
 
 #[derive(Clone, Copy)]
 pub struct Controller {
@@ -40,14 +39,15 @@ impl Agent for Controller {
     }
 
     fn step(&mut self, input: Vec<f64>) -> Vec<f64> {
-        let mut a = (self.x_coeff * input[0]) + (self.x_dot_coeff * input[1]) + (self.theta_coeff * input[2]) + (self.theta_dot_coeff * input[3]);
-        a =  f64::max(-MAX_U, f64::min(a, MAX_U));
+        let mut a = (self.x_coeff * input[0])
+            + (self.x_dot_coeff * input[1])
+            + (self.theta_coeff * input[2])
+            + (self.theta_dot_coeff * input[3]);
+        a = f64::max(-MAX_U, f64::min(a, MAX_U));
         vec![a]
     }
 
-    fn reset(&mut self) {
-
-    }
+    fn reset(&mut self) {}
 
     fn mutate(&self, mutation_rate: f64) -> Self {
         let x_coeff_delta = rand::thread_rng().gen_range(-mutation_rate..=mutation_rate);
@@ -64,17 +64,16 @@ impl Agent for Controller {
     }
 }
 
-
 #[derive(Clone)]
 struct InvertedPendulum<A: Agent> {
     agent: A,
-    m: f64, // Mass of the pendulum
-    m_kart: f64, // Mass of the cart
-    l: f64, // Length of the pendulum
-    g: f64, // Acceleration due to gravity
-    x: f64, // Cart position
-    theta: f64, // Pendulum angle
-    x_dot: f64, // Cart velocity
+    m: f64,         // Mass of the pendulum
+    m_kart: f64,    // Mass of the cart
+    l: f64,         // Length of the pendulum
+    g: f64,         // Acceleration due to gravity
+    x: f64,         // Cart position
+    theta: f64,     // Pendulum angle
+    x_dot: f64,     // Cart velocity
     theta_dot: f64, // Pendulum angular velocity
     theta_acc: f64,
     x_acc: f64,
@@ -84,20 +83,19 @@ unsafe impl<A: Agent> Send for InvertedPendulum<A> {}
 unsafe impl<A: Agent> Sync for InvertedPendulum<A> {}
 
 impl<A: Agent> Simulation<A> for InvertedPendulum<A> {
-
     fn new(agent: A) -> Self {
         let starting_angle = rand::thread_rng().gen_range(-MAX_STARTING_ANGLE..=MAX_STARTING_ANGLE);
         println!("Starting_angle: {:.2} deg", starting_angle.to_degrees());
-        InvertedPendulum { 
+        InvertedPendulum {
             agent,
-            m: 0.25, // Mass of the pendulum
-            m_kart: 0.25, // Mass of the cart
-            l: 0.1, // Length of the pendulum
-            g: 9.81, // Acceleration due to gravity
-            x: 0., // Cart position
+            m: 0.25,               // Mass of the pendulum
+            m_kart: 0.25,          // Mass of the cart
+            l: 0.1,                // Length of the pendulum
+            g: 9.81,               // Acceleration due to gravity
+            x: 0.,                 // Cart position
             theta: starting_angle, // Pendulum angle
-            x_dot: 0., // Cart velocity
-            theta_dot: 0., // Pendulum angular velocity
+            x_dot: 0.,             // Cart velocity
+            theta_dot: 0.,         // Pendulum angular velocity
             x_acc: 0.,
             theta_acc: 0.,
         }
@@ -112,16 +110,16 @@ impl<A: Agent> Simulation<A> for InvertedPendulum<A> {
     }
 
     fn new_env(&self, agent: A) -> Self {
-        InvertedPendulum { 
+        InvertedPendulum {
             agent,
-            m: 0.25, // Mass of the pendulum
-            m_kart: 0.25, // Mass of the cart
-            l: 0.1, // Length of the pendulum
-            g: 9.81, // Acceleration due to gravity
-            x: 0., // Cart position
+            m: 0.25,           // Mass of the pendulum
+            m_kart: 0.25,      // Mass of the cart
+            l: 0.1,            // Length of the pendulum
+            g: 9.81,           // Acceleration due to gravity
+            x: 0.,             // Cart position
             theta: self.theta, // Pendulum angle
-            x_dot: 0., // Cart velocity
-            theta_dot: 0., // Pendulum angular velocity
+            x_dot: 0.,         // Cart velocity
+            theta_dot: 0.,     // Pendulum angular velocity
             x_acc: 0.,
             theta_acc: 0.,
         }
@@ -138,9 +136,10 @@ impl<A: Agent> InvertedPendulum<A> {
         let x_acc = (self.m * self.l * self.theta_dot.powi(2) * f64::sin(self.theta)
             - self.m * self.g * f64::cos(self.theta) * f64::sin(self.theta))
             / (self.m_kart + self.m * (1.0 - f64::cos(self.theta).powi(2)));
-        let theta_acc =
-            (self.g * f64::sin(self.theta) + f64::cos(self.theta) * (-a - self.m * self.l * self.theta_dot.powi(2) * f64::sin(self.theta)))
-                / (self.l * (self.m_kart + self.m * (1.0 - f64::cos(self.theta).powi(2))));
+        let theta_acc = (self.g * f64::sin(self.theta)
+            + f64::cos(self.theta)
+                * (-a - self.m * self.l * self.theta_dot.powi(2) * f64::sin(self.theta)))
+            / (self.l * (self.m_kart + self.m * (1.0 - f64::cos(self.theta).powi(2))));
 
         self.x_acc = x_acc;
         self.theta_acc = theta_acc;
@@ -166,12 +165,17 @@ impl<A: Agent> InvertedPendulum<A> {
             cum_squared_error_x += x_error.powf(2.);
             cum_squared_error_theta += theta_error.powf(2.);
 
-            let a = agent.step(vec![self.x * 10., self.x_dot, self.theta * 3., self.theta_dot])[0];
+            let a = agent.step(vec![
+                self.x * 10.,
+                self.x_dot,
+                self.theta * 3.,
+                self.theta_dot,
+            ])[0];
             cum_squared_u += a.powf(2.);
             self.update(a);
-    
+
             // Print the cart position and pendulum angle
-            if !training && step%10 == 0 {
+            if !training && step % 10 == 0 {
                 println!(
                     "Time: {:.2}s, Cart Position: {:.2}m, Cart Speed: {:.2}m/s, Pendulum Angle: {:.2}deg, U: {:.2}m/s²",
                     step as f64 * DT,
@@ -187,7 +191,10 @@ impl<A: Agent> InvertedPendulum<A> {
             }
         }
 
-        10000. - (cum_squared_error_x / total_steps as f64).powf(0.5) - (cum_squared_error_theta / total_steps as f64).powf(0.5) - (cum_squared_u / total_steps as f64).powf(0.5)
+        10000.
+            - (cum_squared_error_x / total_steps as f64).powf(0.5)
+            - (cum_squared_error_theta / total_steps as f64).powf(0.5)
+            - (cum_squared_u / total_steps as f64).powf(0.5)
     }
 }
 
@@ -199,7 +206,13 @@ pub fn main() {
     let mutation_rate: f64 = 0.1;
     let mutation_decay: f64 = 0.999;
 
-    let population = training_from_scratch::<Controller, InvertedPendulum<Controller>>(nb_individus, nb_generation, survivial_rate, mutation_rate, mutation_decay);
+    let population = training_from_scratch::<Controller, InvertedPendulum<Controller>>(
+        nb_individus,
+        nb_generation,
+        survivial_rate,
+        mutation_rate,
+        mutation_decay,
+    );
 
     let mut sim = InvertedPendulum::<Controller>::new(population[0]);
 

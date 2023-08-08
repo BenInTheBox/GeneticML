@@ -16,8 +16,8 @@ unsafe impl Sync for TestAgent {}
 impl Agent for TestAgent {
     fn new() -> Self {
         let random_number = rand::thread_rng().gen_range(-100.0..=100.0) as f64;
-        TestAgent { 
-            guess: random_number 
+        TestAgent {
+            guess: random_number,
         }
     }
 
@@ -26,19 +26,16 @@ impl Agent for TestAgent {
         vec![self.guess]
     }
 
-    fn reset(&mut self) {
-
-    }
+    fn reset(&mut self) {}
 
     fn mutate(&self, mutation_rate: f64) -> Self {
-        let amplitude = mutation_rate*10.;
+        let amplitude = mutation_rate * 10.;
         let random_number = rand::thread_rng().gen_range(-amplitude..=amplitude);
-        TestAgent { 
-            guess: self.guess + random_number 
+        TestAgent {
+            guess: self.guess + random_number,
         }
     }
 }
-
 
 #[derive(Clone)]
 struct TestSimulation<A: Agent> {
@@ -51,11 +48,10 @@ unsafe impl<A: Agent> Send for TestSimulation<A> {}
 unsafe impl<A: Agent> Sync for TestSimulation<A> {}
 
 impl<A: Agent> Simulation<A> for TestSimulation<A> {
-
     fn new(agent: A) -> Self {
         let random_number = rand::thread_rng().gen_range(-100.0..=100.0);
         println!("Number to guess: {}", random_number);
-        TestSimulation { 
+        TestSimulation {
             agent,
             target: random_number,
             obs: random_number,
@@ -64,7 +60,7 @@ impl<A: Agent> Simulation<A> for TestSimulation<A> {
 
     fn evaluate_agent(&mut self) -> f64 {
         let mut agent = self.agent;
-        let fitness = - (agent.step(vec![0.])[0] - self.obs).abs();
+        let fitness = -(agent.step(vec![0.])[0] - self.obs).abs();
 
         fitness
     }
@@ -96,8 +92,13 @@ pub fn main() {
     let mutation_rate: f64 = 1.;
     let mutation_decay: f64 = 0.99;
 
-
-    let population = training_from_scratch::<TestAgent, TestSimulation<TestAgent>>(nb_individus, nb_generation, survivial_rate, mutation_rate, mutation_decay);
+    let population = training_from_scratch::<TestAgent, TestSimulation<TestAgent>>(
+        nb_individus,
+        nb_generation,
+        survivial_rate,
+        mutation_rate,
+        mutation_decay,
+    );
 
     println!("Final guess: {}", population[0].to_owned().step(vec![])[0]);
 }

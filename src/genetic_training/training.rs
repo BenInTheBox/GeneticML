@@ -5,7 +5,6 @@ use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
-
 fn run_generation<A, S>(population: Vec<A>, simulation: &S) -> Vec<(A, f64)>
 where
     A: Agent,
@@ -36,9 +35,8 @@ where
     A: Agent,
 {
     let pop = population.len();
-    (0..(nb_individus-pop)).for_each(|i|{
-        population.push(population[i%pop].mutate(mutation_rate))
-    });
+    (0..(nb_individus - pop))
+        .for_each(|i| population.push(population[i % pop].mutate(mutation_rate)));
     for agent in &mut population {
         agent.reset();
     }
@@ -48,12 +46,12 @@ where
 pub fn training_from_checkpoint<A, S>(
     population: Vec<A>,
     simulation: &mut S,
-    nb_individus: usize, 
-    nb_generation: usize, 
-    survivial_rate: f64, 
-    mutation_rate: f64, 
-    mutation_decay: f64) 
-    -> Vec<A>
+    nb_individus: usize,
+    nb_generation: usize,
+    survivial_rate: f64,
+    mutation_rate: f64,
+    mutation_decay: f64,
+) -> Vec<A>
 where
     A: Agent,
     S: Simulation<A>,
@@ -67,20 +65,25 @@ where
     for gen in 0..nb_generation {
         let start_time = Instant::now();
         let mutation_rate = 1. * mutation_decay.powf(gen as f64);
-        println!("Generation: {}     Mutation rate: {}", gen, (mutation_rate * 10000.0).round() / 10000.0);
+        println!(
+            "Generation: {}     Mutation rate: {}",
+            gen,
+            (mutation_rate * 10000.0).round() / 10000.0
+        );
         let results = run_generation(population, simulation);
 
         let surviviors: Vec<(A, f64)> = results.into_iter().take(nb_keep).collect();
 
-        let scores: Vec<f64> = surviviors.iter().map(|res| {
-            (res.1 * 10000.0).round() / 10000.0
-        }).collect();
+        let scores: Vec<f64> = surviviors
+            .iter()
+            .map(|res| (res.1 * 10000.0).round() / 10000.0)
+            .collect();
         println!("Best individuals fitness: {:?}", scores);
 
         population = reproduce(
-            surviviors.into_iter().map(|sur| sur.0).collect(), 
+            surviviors.into_iter().map(|sur| sur.0).collect(),
             nb_individus,
-            mutation_rate
+            mutation_rate,
         );
 
         simulation.on_generation(gen);
@@ -95,18 +98,24 @@ where
     let end_time = Instant::now();
     let elapsed_time = end_time.duration_since(s_time);
     let elapsed_seconds = elapsed_time.as_millis();
-    println!("Total time: {} ms\nFor {} individuals for {} generations.\nFor a total of {} simlatioins", elapsed_seconds, nb_individus, nb_generation, nb_individus * nb_generation);
+    println!(
+        "Total time: {} ms\nFor {} individuals for {} generations.\nFor a total of {} simlatioins",
+        elapsed_seconds,
+        nb_individus,
+        nb_generation,
+        nb_individus * nb_generation
+    );
 
     population
 }
 
 pub fn training_from_scratch<A, S>(
-    nb_individus: usize, 
-    nb_generation: usize, 
-    survivial_rate: f64, 
-    mutation_rate: f64, 
-    mutation_decay: f64) 
-    -> Vec<A>
+    nb_individus: usize,
+    nb_generation: usize,
+    survivial_rate: f64,
+    mutation_rate: f64,
+    mutation_decay: f64,
+) -> Vec<A>
 where
     A: Agent,
     S: Simulation<A>,
@@ -114,18 +123,15 @@ where
     let model_agent = A::new();
     let mut sim = S::new(model_agent);
 
-    let population: Vec<A> = (0..nb_individus).map(|_| {
-        A::new()
-        }).collect();
-
+    let population: Vec<A> = (0..nb_individus).map(|_| A::new()).collect();
 
     training_from_checkpoint::<A, S>(
         population,
         &mut sim,
-        nb_individus, 
-        nb_generation, 
-        survivial_rate, 
-        mutation_rate, 
-        mutation_decay
+        nb_individus,
+        nb_generation,
+        survivial_rate,
+        mutation_rate,
+        mutation_decay,
     )
 }

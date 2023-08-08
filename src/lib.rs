@@ -1,6 +1,5 @@
 pub mod genetic_training;
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
