@@ -5,7 +5,7 @@ use crate::genetic_rl::genetic_training::simulation::Simulation;
 use crate::genetic_rl::genetic_training::training::training_from_scratch;
 use rand::Rng;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct TestAgent {
     guess: f64,
 }
@@ -21,9 +21,9 @@ impl Agent for TestAgent {
         }
     }
 
-    fn step(&mut self, _input: Vec<f64>) -> Vec<f64> {
+    fn step(&mut self, _input: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
         //println!("Guess: {}", self.guess);
-        vec![self.guess]
+        vec![vec![self.guess]]
     }
 
     fn reset(&mut self) {}
@@ -59,14 +59,14 @@ impl<A: Agent> Simulation<A> for TestSimulation<A> {
     }
 
     fn evaluate_agent(&mut self) -> f64 {
-        let mut agent = self.agent;
-        let fitness = -(agent.step(vec![0.])[0] - self.obs).abs();
+        let mut agent = self.agent.clone();
+        let fitness = -(agent.step(&vec![])[0][0] - self.obs).abs();
 
         fitness
     }
 
     fn get_agent(&self) -> A {
-        self.agent
+        self.agent.clone()
     }
 
     fn new_env(&self, agent: A) -> Self {
@@ -100,5 +100,5 @@ pub fn main() {
         mutation_decay,
     );
 
-    println!("Final guess: {}", population[0].to_owned().step(vec![])[0]);
+    println!("Final guess: {}", population[0].to_owned().step(&vec![])[0][0]);
 }

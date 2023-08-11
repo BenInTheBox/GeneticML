@@ -38,13 +38,13 @@ impl Agent for Controller {
         }
     }
 
-    fn step(&mut self, input: Vec<f64>) -> Vec<f64> {
-        let mut a = (self.x_coeff * input[0])
-            + (self.x_dot_coeff * input[1])
-            + (self.theta_coeff * input[2])
-            + (self.theta_dot_coeff * input[3]);
+    fn step(&mut self, input: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+        let mut a = (self.x_coeff * input[0][0])
+            + (self.x_dot_coeff * input[0][1])
+            + (self.theta_coeff * input[0][2])
+            + (self.theta_dot_coeff * input[0][3]);
         a = f64::max(-MAX_U, f64::min(a, MAX_U));
-        vec![a]
+        vec![vec![a]]
     }
 
     fn reset(&mut self) {}
@@ -106,7 +106,7 @@ impl<A: Agent> Simulation<A> for InvertedPendulum<A> {
     }
 
     fn get_agent(&self) -> A {
-        self.agent
+        self.agent.clone()
     }
 
     fn new_env(&self, agent: A) -> Self {
@@ -150,7 +150,7 @@ impl<A: Agent> InvertedPendulum<A> {
     }
 
     fn simulate_agent(&mut self, training: bool) -> f64 {
-        let mut agent = self.agent;
+        let mut agent = self.agent.clone();
 
         let total_steps = (TOTAL_TIME / DT) as usize;
 
@@ -165,12 +165,14 @@ impl<A: Agent> InvertedPendulum<A> {
             cum_squared_error_x += x_error.powf(2.);
             cum_squared_error_theta += theta_error.powf(2.);
 
-            let a = agent.step(vec![
-                self.x * 10.,
-                self.x_dot,
-                self.theta * 3.,
-                self.theta_dot,
-            ])[0];
+            let a = agent.step(&vec![
+                vec![
+                    self.x * 10.,
+                    self.x_dot,
+                    self.theta * 3.,
+                    self.theta_dot,
+                ]
+            ])[0][0];
             cum_squared_u += a.powf(2.);
             self.update(a);
 

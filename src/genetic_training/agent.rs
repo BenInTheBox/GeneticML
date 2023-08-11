@@ -1,6 +1,6 @@
-pub trait Agent: Clone + Copy + Send + Sync + 'static {
+pub trait Agent: Clone + Send + Sync + 'static {
     fn new() -> Self;
-    fn step(&mut self, input: Vec<f64>) -> Vec<f64>;
+    fn step(&mut self, input: &Vec<Vec<f64>>) -> Vec<Vec<f64>>;
     fn reset(&mut self);
     fn mutate(&self, mutation_rate: f64) -> Self;
 }

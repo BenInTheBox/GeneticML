@@ -120,3 +120,11 @@ struct InvertedPendulum<A: Agent> {
     x_acc: f64,
 }
 ```
+
+### XorNOT
+
+Trival example to show the use of the neural network module.
+
+```console
+cargo run --example xornot
+```
