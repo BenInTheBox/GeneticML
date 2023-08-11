@@ -99,7 +99,7 @@ where
     let elapsed_time = end_time.duration_since(s_time);
     let elapsed_seconds = elapsed_time.as_millis();
     println!(
-        "Total time: {} ms\nFor {} individuals for {} generations.\nFor a total of {} simlatioins",
+        "Total time: {} ms\nFor {} individuals for {} generations.\nFor a total of {} simulations",
         elapsed_seconds,
         nb_individus,
         nb_generation,
