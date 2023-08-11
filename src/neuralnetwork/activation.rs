@@ -17,12 +17,7 @@ pub fn sigmoid(input: Vec<Vec<f64>>) -> Vec<Vec<f64>> {
 
     input
         .iter()
-        .map(|batch| {
-            batch
-                .iter()
-                .map(|&x| sigmoid_activation(x))
-                .collect()
-        })
+        .map(|batch| batch.iter().map(|&x| sigmoid_activation(x)).collect())
         .collect()
 }
 
@@ -33,11 +28,6 @@ pub fn tanh(input: Vec<Vec<f64>>) -> Vec<Vec<f64>> {
 
     input
         .iter()
-        .map(|batch| {
-            batch
-                .iter()
-                .map(|&x| tanh_activation(x))
-                .collect()
-        })
+        .map(|batch| batch.iter().map(|&x| tanh_activation(x)).collect())
         .collect()
 }

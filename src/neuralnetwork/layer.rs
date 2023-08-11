@@ -2,6 +2,50 @@ use rand::Rng;
 
 const MAX_WEIGHT: f64 = 2.;
 
+fn mutate_2d(weights: &mut Vec<Vec<f64>>, mutation_rate: f64) {
+    let mut rng = rand::thread_rng();
+    for weight in weights.iter_mut() {
+        for w in weight.iter_mut() {
+            if rng.gen::<f64>() < 0.5 {
+                let pos_mult = if *w > 0. {
+                    (1. - (*w / MAX_WEIGHT)).max(0.)
+                } else {
+                    1.
+                };
+                let neg_mult = if *w < 0. {
+                    (1. + (*w / MAX_WEIGHT)).max(0.)
+                } else {
+                    1.
+                };
+
+                *w += rng
+                    .gen_range(-(0.1 * neg_mult * mutation_rate)..(0.1 * pos_mult * mutation_rate));
+            }
+        }
+    }
+}
+
+fn mutate_1d(weights: &mut Vec<f64>, mutation_rate: f64) {
+    let mut rng = rand::thread_rng();
+    for b in weights.iter_mut() {
+        if rng.gen::<f64>() < 0.5 {
+            let pos_mult = if *b > 0. {
+                (1. - (*b / MAX_WEIGHT)).max(0.)
+            } else {
+                1.
+            };
+            let neg_mult = if *b < 0. {
+                (1. + (*b / MAX_WEIGHT)).max(0.)
+            } else {
+                1.
+            };
+
+            *b += rng
+                .gen_range(-(0.05 * neg_mult * mutation_rate)..(0.05 * pos_mult * mutation_rate));
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct LinearLayer {
     pub weights: Vec<Vec<f64>>,
@@ -32,7 +76,8 @@ impl LinearLayer {
                     .iter()
                     .enumerate()
                     .map(|(neuron_idx, weight)| {
-                        let weighted_sum: f64 = batch.iter().zip(weight.iter()).map(|(&x, &w)| x * w).sum();
+                        let weighted_sum: f64 =
+                            batch.iter().zip(weight.iter()).map(|(&x, &w)| x * w).sum();
                         weighted_sum + self.bias[neuron_idx]
                     })
                     .collect()
@@ -42,27 +87,8 @@ impl LinearLayer {
 
     pub fn mutate(&self, mutation_rate: f64) -> Self {
         let mut new_layer = self.clone();
-
-        let mut rng = rand::thread_rng();
-        for weight in new_layer.weights.iter_mut() {
-            for w in weight.iter_mut() {
-                if rng.gen::<f64>() < 0.5 {
-                    let pos_mult = if *w > 0. {(1. - (*w / MAX_WEIGHT)).max(0.)} else {1.};
-                    let neg_mult = if *w < 0. {(1. + (*w / MAX_WEIGHT)).max(0.)} else {1.};
-
-                    *w += rng.gen_range(-(0.1 * neg_mult * mutation_rate)..(0.1 * pos_mult * mutation_rate));
-                }
-            }
-        }
-
-        for b in new_layer.bias.iter_mut() {
-            if rng.gen::<f64>() < 0.5 {
-                let pos_mult = if *b > 0. {(1. - (*b / MAX_WEIGHT)).max(0.)} else {1.};
-                let neg_mult = if *b < 0. {(1. + (*b / MAX_WEIGHT)).max(0.)} else {1.};
-
-                *b += rng.gen_range(-(0.05 * neg_mult * mutation_rate)..(0.05 * pos_mult * mutation_rate));
-            }
-        }
+        mutate_2d(&mut new_layer.weights, mutation_rate);
+        mutate_1d(&mut new_layer.bias, mutation_rate);
 
         new_layer
     }

@@ -3,8 +3,8 @@ extern crate genetic_rl;
 use crate::genetic_rl::genetic_training::agent::Agent;
 use crate::genetic_rl::genetic_training::simulation::Simulation;
 use crate::genetic_rl::genetic_training::training::training_from_scratch;
+use crate::genetic_rl::neuralnetwork::activation::{relu, sigmoid};
 use crate::genetic_rl::neuralnetwork::layer::LinearLayer;
-use crate::genetic_rl::neuralnetwork::activation::{sigmoid, relu};
 use crate::genetic_rl::neuralnetwork::metrics::calculate_mse;
 
 #[derive(Clone)]
@@ -32,17 +32,15 @@ impl Agent for NeuralNet {
 
         output = self.layer2.forward(&output);
         sigmoid(output)
-
     }
 
     fn mutate(&self, mutation_rate: f64) -> Self {
-        NeuralNet{
+        NeuralNet {
             layer1: self.layer1.mutate(mutation_rate),
             layer2: self.layer2.mutate(mutation_rate),
         }
     }
 }
-
 
 #[derive(Clone)]
 struct XorNot<A: Agent> {
@@ -58,25 +56,15 @@ impl<A: Agent> Simulation<A> for XorNot<A> {
     fn new(agent: A) -> Self {
         XorNot {
             agent,
-            inputs: vec![
-                vec![0., 0.],
-                vec![1., 0.],
-                vec![0., 1.],
-                vec![1., 1.]
-            ],
-            targets: vec![
-                vec![0.],
-                vec![1.],
-                vec![1.],
-                vec![0.],
-            ]
+            inputs: vec![vec![0., 0.], vec![1., 0.], vec![0., 1.], vec![1., 1.]],
+            targets: vec![vec![0.], vec![1.], vec![1.], vec![0.]],
         }
     }
 
     fn evaluate_agent(&mut self) -> f64 {
         let prediction = self.agent.step(&self.inputs);
 
-        - calculate_mse(&self.targets, &prediction)
+        -calculate_mse(&self.targets, &prediction)
     }
 
     fn get_agent(&self) -> A {
@@ -87,8 +75,7 @@ impl<A: Agent> Simulation<A> for XorNot<A> {
         XorNot::new(agent)
     }
 
-    fn on_generation(&mut self, _generation_number: usize) {
-    }
+    fn on_generation(&mut self, _generation_number: usize) {}
 }
 
 pub fn main() {

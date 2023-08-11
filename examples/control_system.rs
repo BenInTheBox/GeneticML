@@ -165,14 +165,12 @@ impl<A: Agent> InvertedPendulum<A> {
             cum_squared_error_x += x_error.powf(2.);
             cum_squared_error_theta += theta_error.powf(2.);
 
-            let a = agent.step(&vec![
-                vec![
-                    self.x * 10.,
-                    self.x_dot,
-                    self.theta * 3.,
-                    self.theta_dot,
-                ]
-            ])[0][0];
+            let a = agent.step(&vec![vec![
+                self.x * 10.,
+                self.x_dot,
+                self.theta * 3.,
+                self.theta_dot,
+            ]])[0][0];
             cum_squared_u += a.powf(2.);
             self.update(a);
 

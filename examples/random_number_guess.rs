@@ -100,5 +100,8 @@ pub fn main() {
         mutation_decay,
     );
 
-    println!("Final guess: {}", population[0].to_owned().step(&vec![])[0][0]);
+    println!(
+        "Final guess: {}",
+        population[0].to_owned().step(&vec![])[0][0]
+    );
 }

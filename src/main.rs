@@ -4,10 +4,7 @@ use genetic_rl::neuralnetwork::layer::LinearLayer;
 
 fn main() {
     let mut layer = LinearLayer::new(3, 2);
-    let w = vec![
-        vec![1., 2., 3.],
-        vec![3., 4., 5.]
-    ];
+    let w = vec![vec![1., 2., 3.], vec![3., 4., 5.]];
 
     println!("{:?}", layer.weights);
 
@@ -15,10 +12,7 @@ fn main() {
 
     println!("{:?}", layer.weights);
 
-    let input = vec![
-        vec![1., 2., 3.],
-        vec![1., 1., 1.]
-    ];
+    let input = vec![vec![1., 2., 3.], vec![1., 1., 1.]];
 
     println!("{:?}", layer.forward(input));
 
