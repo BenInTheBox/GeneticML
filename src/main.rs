@@ -1,4 +1,5 @@
-mod neuralnetwork;
+pub mod genetic_training;
+pub mod neuralnetwork;
 
 use genetic_rl::neuralnetwork::layer::LinearLayer;
 
@@ -14,7 +15,7 @@ fn main() {
 
     let input = vec![vec![1., 2., 3.], vec![1., 1., 1.]];
 
-    println!("{:?}", layer.forward(input));
+    println!("{:?}", layer.forward(&input));
 
     let layer_mut = layer.mutate(0.99);
     println!("{:?}", layer_mut.weights);

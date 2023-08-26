@@ -72,7 +72,9 @@ impl<A: Agent> Simulation<A> for XorNot<A> {
     }
 
     fn new_env(&self, agent: A) -> Self {
-        XorNot::new(agent)
+        let mut new_e = self.clone();
+        new_e.agent = agent;
+        new_e
     }
 
     fn on_generation(&mut self, _generation_number: usize) {}

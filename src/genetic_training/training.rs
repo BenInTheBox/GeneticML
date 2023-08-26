@@ -64,11 +64,11 @@ where
 
     for gen in 0..nb_generation {
         let start_time = Instant::now();
-        let mutation_rate = 1. * mutation_decay.powf(gen as f64);
+        let gen_mutation_rate = mutation_rate * mutation_decay.powf(gen as f64);
         println!(
             "Generation: {}     Mutation rate: {}",
             gen,
-            (mutation_rate * 10000.0).round() / 10000.0
+            (gen_mutation_rate * 10000.0).round() / 10000.0
         );
         let results = run_generation(population, simulation);
 
@@ -83,7 +83,7 @@ where
         population = reproduce(
             surviviors.into_iter().map(|sur| sur.0).collect(),
             nb_individus,
-            mutation_rate,
+            gen_mutation_rate,
         );
 
         simulation.on_generation(gen);
