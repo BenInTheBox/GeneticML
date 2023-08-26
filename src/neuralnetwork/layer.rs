@@ -1,50 +1,8 @@
-use rand::Rng;
-
-const MAX_WEIGHT: f64 = 2.;
-
-fn mutate_2d(weights: &mut Vec<Vec<f64>>, mutation_rate: f64) {
-    let mut rng = rand::thread_rng();
-    for weight in weights.iter_mut() {
-        for w in weight.iter_mut() {
-            if rng.gen::<f64>() < 0.5 {
-                let pos_mult = if *w > 0. {
-                    (1. - (*w / MAX_WEIGHT)).max(0.)
-                } else {
-                    1.
-                };
-                let neg_mult = if *w < 0. {
-                    (1. + (*w / MAX_WEIGHT)).max(0.)
-                } else {
-                    1.
-                };
-
-                *w += rng
-                    .gen_range(-(0.1 * neg_mult * mutation_rate)..(0.1 * pos_mult * mutation_rate));
-            }
-        }
-    }
-}
-
-fn mutate_1d(weights: &mut Vec<f64>, mutation_rate: f64) {
-    let mut rng = rand::thread_rng();
-    for b in weights.iter_mut() {
-        if rng.gen::<f64>() < 0.5 {
-            let pos_mult = if *b > 0. {
-                (1. - (*b / MAX_WEIGHT)).max(0.)
-            } else {
-                1.
-            };
-            let neg_mult = if *b < 0. {
-                (1. + (*b / MAX_WEIGHT)).max(0.)
-            } else {
-                1.
-            };
-
-            *b += rng
-                .gen_range(-(0.05 * neg_mult * mutation_rate)..(0.05 * pos_mult * mutation_rate));
-        }
-    }
-}
+use crate::neuralnetwork::activation::{sigmoid, tanh};
+use crate::neuralnetwork::linalgebra::{
+    add_bias, m_addition, m_element_mul, m_substraction, mutate_1d, mutate_2d, w_dot_x,
+    w_random_init,
+};
 
 #[derive(Clone)]
 pub struct LinearLayer {
@@ -54,10 +12,7 @@ pub struct LinearLayer {
 
 impl LinearLayer {
     pub fn new(input_size: usize, output_size: usize) -> Self {
-        let mut rng = rand::thread_rng();
-        let weights = (0..output_size)
-            .map(|_| (0..input_size).map(|_| rng.gen_range(-1.0..1.0)).collect())
-            .collect();
+        let weights = w_random_init(input_size, output_size);
         let bias = vec![0.0; output_size];
 
         LinearLayer { weights, bias }
@@ -69,20 +24,8 @@ impl LinearLayer {
     }
 
     pub fn forward(&mut self, input: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
-        input
-            .iter()
-            .map(|batch| {
-                self.weights
-                    .iter()
-                    .enumerate()
-                    .map(|(neuron_idx, weight)| {
-                        let weighted_sum: f64 =
-                            batch.iter().zip(weight.iter()).map(|(&x, &w)| x * w).sum();
-                        weighted_sum + self.bias[neuron_idx]
-                    })
-                    .collect()
-            })
-            .collect()
+        let temp = w_dot_x(&self.weights, input);
+        add_bias(&self.bias, &temp)
     }
 
     pub fn mutate(&self, mutation_rate: f64) -> Self {
@@ -91,5 +34,106 @@ impl LinearLayer {
         mutate_1d(&mut new_layer.bias, mutation_rate);
 
         new_layer
+    }
+}
+
+#[derive(Clone)]
+pub struct GRULayer {
+    pub w_reset: Vec<Vec<f64>>,
+    pub u_reset: Vec<Vec<f64>>,
+    pub b_reset: Vec<f64>,
+
+    pub w_update: Vec<Vec<f64>>,
+    pub u_update: Vec<Vec<f64>>,
+    pub b_update: Vec<f64>,
+
+    pub w_candidate: Vec<Vec<f64>>,
+    pub u_candidate: Vec<Vec<f64>>,
+    pub b_candidate: Vec<f64>,
+
+    pub hidden_state: Vec<Vec<f64>>,
+}
+
+impl GRULayer {
+    pub fn new(input_size: usize, output_size: usize) -> Self {
+        let w_reset = w_random_init(input_size, output_size);
+        let u_reset = w_random_init(output_size, output_size);
+        let b_reset = vec![0.0; output_size];
+
+        let w_update = w_random_init(input_size, output_size);
+        let u_update = w_random_init(output_size, output_size);
+        let b_update = vec![0.0; output_size];
+
+        let w_candidate = w_random_init(input_size, output_size);
+        let u_candidate = w_random_init(output_size, output_size);
+        let b_candidate = vec![0.0; output_size];
+
+        let hidden_state = vec![vec![0.0; output_size]; input_size];
+
+        GRULayer {
+            w_reset,
+            u_reset,
+            b_reset,
+            w_update,
+            u_update,
+            b_update,
+            w_candidate,
+            u_candidate,
+            b_candidate,
+            hidden_state,
+        }
+    }
+
+    pub fn forward(&mut self, input: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+        let z = sigmoid(add_bias(
+            &self.b_update,
+            &m_addition(
+                &w_dot_x(&self.w_update, &input),
+                &w_dot_x(&self.u_update, &self.hidden_state),
+            ),
+        ));
+
+        let r = sigmoid(add_bias(
+            &self.b_reset,
+            &m_addition(
+                &w_dot_x(&self.w_reset, &input),
+                &w_dot_x(&self.u_reset, &self.hidden_state),
+            ),
+        ));
+
+        let h_candidate = tanh(add_bias(
+            &self.b_candidate,
+            &m_addition(
+                &w_dot_x(&self.w_candidate, &input),
+                &w_dot_x(&self.u_candidate, &m_element_mul(&r, &self.hidden_state)),
+            ),
+        ));
+
+        self.hidden_state = m_addition(
+            &m_element_mul(
+                &m_substraction(&vec![vec![1.; z[0].len()]; z.len()], &z),
+                &self.hidden_state,
+            ),
+            &m_element_mul(&z, &h_candidate),
+        );
+
+        self.hidden_state.clone()
+    }
+
+    pub fn mutate(&self, mutation_rate: f64) -> Self {
+        let mut new_layer = self.clone();
+        mutate_2d(&mut new_layer.w_reset, mutation_rate);
+        mutate_2d(&mut new_layer.w_update, mutation_rate);
+        mutate_2d(&mut new_layer.w_candidate, mutation_rate);
+
+        mutate_1d(&mut new_layer.b_reset, mutation_rate);
+        mutate_1d(&mut new_layer.b_update, mutation_rate);
+        mutate_1d(&mut new_layer.b_candidate, mutation_rate);
+
+        new_layer
+    }
+
+    pub fn reset(&mut self) {
+        self.hidden_state = vec![vec![0.0; self.hidden_state[0].len()]; self.hidden_state.len()];
     }
 }
