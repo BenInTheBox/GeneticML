@@ -2,7 +2,7 @@ extern crate genetic_rl;
 
 use crate::genetic_rl::genetic_training::agent::Agent;
 use crate::genetic_rl::genetic_training::simulation::Simulation;
-use crate::genetic_rl::genetic_training::training::training_from_scratch;
+use crate::genetic_rl::genetic_training::training::training_from_checkpoint;
 use crate::genetic_rl::neuralnetwork::activation::{relu, sigmoid};
 use crate::genetic_rl::neuralnetwork::layer::LinearLayer;
 use crate::genetic_rl::neuralnetwork::metrics::calculate_mse;
@@ -43,41 +43,32 @@ impl Agent for NeuralNet {
 }
 
 #[derive(Clone)]
-struct XorNot<A: Agent> {
-    agent: A,
+struct XorNot {
     pub inputs: Vec<Vec<f64>>,
     targets: Vec<Vec<f64>>,
 }
 
-unsafe impl<A: Agent> Send for XorNot<A> {}
-unsafe impl<A: Agent> Sync for XorNot<A> {}
+impl Simulation for XorNot {
 
-impl<A: Agent> Simulation<A> for XorNot<A> {
-    fn new(agent: A) -> Self {
-        XorNot {
-            agent,
-            inputs: vec![vec![0., 0.], vec![1., 0.], vec![0., 1.], vec![1., 1.]],
-            targets: vec![vec![0.], vec![1.], vec![1.], vec![0.]],
-        }
-    }
-
-    fn evaluate_agent(&mut self) -> f64 {
-        let prediction = self.agent.step(&self.inputs);
+    fn evaluate_agent<A>(&self, agent: &mut A) -> f64
+    where
+        A: Agent,
+    {
+        let prediction = agent.step(&self.inputs);
 
         -calculate_mse(&self.targets, &prediction)
     }
 
-    fn get_agent(&self) -> A {
-        self.agent.clone()
-    }
-
-    fn new_env(&self, agent: A) -> Self {
-        let mut new_e = self.clone();
-        new_e.agent = agent;
-        new_e
-    }
-
     fn on_generation(&mut self, _generation_number: usize) {}
+}
+
+impl XorNot {
+    fn new() -> Self {
+        XorNot {
+            inputs: vec![vec![0., 0.], vec![1., 0.], vec![0., 1.], vec![1., 1.]],
+            targets: vec![vec![0.], vec![1.], vec![1.], vec![0.]],
+        }
+    }
 }
 
 pub fn main() {
@@ -88,7 +79,12 @@ pub fn main() {
     let mutation_rate: f64 = 0.3;
     let mutation_decay: f64 = 0.999;
 
-    let mut population = training_from_scratch::<NeuralNet, XorNot<NeuralNet>>(
+    let mut simulation = XorNot::new();
+    let mut population: Vec<NeuralNet> = (0..nb_individus).map(|_| NeuralNet::new()).collect();
+
+    population = training_from_checkpoint::<NeuralNet, XorNot>(
+        population,
+        &mut simulation,
         nb_individus,
         nb_generation,
         survivial_rate,
@@ -101,6 +97,5 @@ pub fn main() {
     println!("{:?}", population[0].layer2.weights);
     println!("{:?}", population[0].layer2.bias);
 
-    let sim = XorNot::new(population[0].clone());
-    println!("{:?}", population[0].step(&sim.targets));
+    println!("{:?}", population[0].step(&simulation.targets));
 }

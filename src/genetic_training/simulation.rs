@@ -1,9 +1,9 @@
 use crate::genetic_training::agent::Agent;
 
-pub trait Simulation<A: Agent>: Clone + Send + Sync + 'static {
-    fn new(agent: A) -> Self;
-    fn evaluate_agent(&mut self) -> f64;
-    fn get_agent(&self) -> A;
-    fn new_env(&self, agent: A) -> Self;
+pub trait Simulation: Clone + Send + Sync + 'static {
+    fn evaluate_agent<A>(&self, agent: &mut A) -> f64
+    where
+        A: Agent;
+
     fn on_generation(&mut self, generation_number: usize);
 }

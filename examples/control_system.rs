@@ -2,7 +2,7 @@ extern crate genetic_rl;
 
 use crate::genetic_rl::genetic_training::agent::Agent;
 use crate::genetic_rl::genetic_training::simulation::Simulation;
-use crate::genetic_rl::genetic_training::training::training_from_scratch;
+use crate::genetic_rl::genetic_training::training::training_from_checkpoint;
 
 use rand::Rng;
 use std::f64::consts::PI;
@@ -65,128 +65,103 @@ impl Agent for Controller {
 }
 
 #[derive(Clone)]
-struct InvertedPendulum<A: Agent> {
-    agent: A,
+struct InvertedPendulum {
     m: f64,         // Mass of the pendulum
     m_kart: f64,    // Mass of the cart
     l: f64,         // Length of the pendulum
     g: f64,         // Acceleration due to gravity
-    x: f64,         // Cart position
-    theta: f64,     // Pendulum angle
-    x_dot: f64,     // Cart velocity
-    theta_dot: f64, // Pendulum angular velocity
-    theta_acc: f64,
-    x_acc: f64,
+    starting_angle: f64,
 }
 
-unsafe impl<A: Agent> Send for InvertedPendulum<A> {}
-unsafe impl<A: Agent> Sync for InvertedPendulum<A> {}
+impl Simulation for InvertedPendulum {
 
-impl<A: Agent> Simulation<A> for InvertedPendulum<A> {
-    fn new(agent: A) -> Self {
-        let starting_angle = rand::thread_rng().gen_range(-MAX_STARTING_ANGLE..=MAX_STARTING_ANGLE);
-        println!("Starting_angle: {:.2} deg", starting_angle.to_degrees());
-        InvertedPendulum {
-            agent,
-            m: 0.25,               // Mass of the pendulum
-            m_kart: 0.25,          // Mass of the cart
-            l: 0.1,                // Length of the pendulum
-            g: 9.81,               // Acceleration due to gravity
-            x: 0.,                 // Cart position
-            theta: starting_angle, // Pendulum angle
-            x_dot: 0.,             // Cart velocity
-            theta_dot: 0.,         // Pendulum angular velocity
-            x_acc: 0.,
-            theta_acc: 0.,
-        }
-    }
-
-    fn evaluate_agent(&mut self) -> f64 {
-        self.simulate_agent(true)
-    }
-
-    fn get_agent(&self) -> A {
-        self.agent.clone()
-    }
-
-    fn new_env(&self, agent: A) -> Self {
-        InvertedPendulum {
-            agent,
-            m: 0.25,           // Mass of the pendulum
-            m_kart: 0.25,      // Mass of the cart
-            l: 0.1,            // Length of the pendulum
-            g: 9.81,           // Acceleration due to gravity
-            x: 0.,             // Cart position
-            theta: self.theta, // Pendulum angle
-            x_dot: 0.,         // Cart velocity
-            theta_dot: 0.,     // Pendulum angular velocity
-            x_acc: 0.,
-            theta_acc: 0.,
-        }
+    fn evaluate_agent<A>(&self, agent: &mut A) -> f64
+    where
+        A: Agent,
+    {
+        self.simulate_agent(agent, true)
     }
 
     fn on_generation(&mut self, _generation_number: usize) {
         let starting_angle = rand::thread_rng().gen_range(-MAX_STARTING_ANGLE..=MAX_STARTING_ANGLE);
-        self.theta = starting_angle;
+        self.starting_angle = starting_angle;
     }
 }
 
-impl<A: Agent> InvertedPendulum<A> {
-    fn update(&mut self, a: f64) {
-        let x_acc = (self.m * self.l * self.theta_dot.powi(2) * f64::sin(self.theta)
-            - self.m * self.g * f64::cos(self.theta) * f64::sin(self.theta))
-            / (self.m_kart + self.m * (1.0 - f64::cos(self.theta).powi(2)));
-        let theta_acc = (self.g * f64::sin(self.theta)
-            + f64::cos(self.theta)
-                * (-a - self.m * self.l * self.theta_dot.powi(2) * f64::sin(self.theta)))
-            / (self.l * (self.m_kart + self.m * (1.0 - f64::cos(self.theta).powi(2))));
+impl InvertedPendulum {
 
-        self.x_acc = x_acc;
-        self.theta_acc = theta_acc;
-        self.x_dot += x_acc * DT;
-        self.theta_dot += theta_acc * DT;
-        self.x += self.x_dot * DT;
-        self.theta += self.theta_dot * DT;
+    fn new() -> Self {
+        let starting_angle = rand::thread_rng().gen_range(-MAX_STARTING_ANGLE..=MAX_STARTING_ANGLE);
+        println!("Starting_angle: {:.2} deg", starting_angle.to_degrees());
+        InvertedPendulum {
+            m: 0.25,               // Mass of the pendulum
+            m_kart: 0.25,          // Mass of the cart
+            l: 0.1,                // Length of the pendulum
+            g: 9.81,               // Acceleration due to gravity
+            starting_angle,
+        }
     }
 
-    fn simulate_agent(&mut self, training: bool) -> f64 {
-        let mut agent = self.agent.clone();
-
+    fn simulate_agent<A>(&self, agent: &mut A, training: bool) -> f64
+    where
+        A: Agent,
+    {
         let total_steps = (TOTAL_TIME / DT) as usize;
 
         let mut cum_squared_u = 0.;
         let mut cum_squared_error_x = 0.;
         let mut cum_squared_error_theta = 0.;
 
+        let mut x: f64 = 0.;
+        let mut theta: f64 = self.starting_angle;
+        let mut x_dot: f64 = 0.;
+        let mut theta_dot: f64 = 0.;
+        let mut theta_acc: f64 = 0.;
+        let mut x_acc: f64 = 0.;
+
         for step in 0..total_steps {
-            let x_error = 0. - self.x;
-            let theta_error = 0. - self.theta;
+            let x_error = 0. - x;
+            let theta_error = 0. - theta;
 
             cum_squared_error_x += x_error.powf(2.);
             cum_squared_error_theta += theta_error.powf(2.);
 
             let a = agent.step(&vec![vec![
-                self.x * 10.,
-                self.x_dot,
-                self.theta * 3.,
-                self.theta_dot,
+                x * 10.,
+                x_dot,
+                theta * 3.,
+                theta_dot,
             ]])[0][0];
             cum_squared_u += a.powf(2.);
-            self.update(a);
+            
+            // Update state
+            x_acc = (self.m * self.l * theta_dot.powi(2) * f64::sin(theta)
+            - self.m * self.g * f64::cos(theta) * f64::sin(theta))
+            / (self.m_kart + self.m * (1.0 - f64::cos(theta).powi(2)));
+
+            theta_acc = (self.g * f64::sin(theta)
+                + f64::cos(theta)
+                    * (-a - self.m * self.l * theta_dot.powi(2) * f64::sin(theta)))
+                / (self.l * (self.m_kart + self.m * (1.0 - f64::cos(theta).powi(2))));
+
+            x_dot += x_acc * DT;
+            theta_dot += theta_acc * DT;
+            x += x_dot * DT;
+            theta += theta_dot * DT;
 
             // Print the cart position and pendulum angle
             if !training && step % 10 == 0 {
                 println!(
                     "Time: {:.2}s, Cart Position: {:.2}m, Cart Speed: {:.2}m/s, Pendulum Angle: {:.2}deg, U: {:.2}m/s²",
                     step as f64 * DT,
-                    self.x,
-                    self.x_dot,
-                    self.theta.to_degrees(),
+                    x,
+                    x_dot,
+                    theta.to_degrees(),
                     a
                 );
             }
 
-            if self.theta.abs() > PI / 2. || self.x_dot.abs() > 25. {
+            if theta.abs() > PI / 2. || x_dot.abs() > 25. {
                 return step as f64;
             }
         }
@@ -199,14 +174,19 @@ impl<A: Agent> InvertedPendulum<A> {
 }
 
 pub fn main() {
-    let nb_generation: usize = 10;
+    let nb_generation: usize = 100;
     let nb_individus: usize = 100;
     let survivial_rate: f64 = 0.1;
 
     let mutation_rate: f64 = 0.1;
     let mutation_decay: f64 = 0.999;
 
-    let population = training_from_scratch::<Controller, InvertedPendulum<Controller>>(
+    let mut simulation = InvertedPendulum::new();
+    let mut population: Vec<Controller> = (0..nb_individus).map(|_| Controller::new()).collect();
+
+    population = training_from_checkpoint::<Controller, InvertedPendulum>(
+        population,
+        &mut simulation,
         nb_individus,
         nb_generation,
         survivial_rate,
@@ -214,8 +194,6 @@ pub fn main() {
         mutation_decay,
     );
 
-    let mut sim = InvertedPendulum::<Controller>::new(population[0]);
-
     println!("\n\n\n");
-    sim.simulate_agent(false);
+    simulation.simulate_agent(&mut population[0], false);
 }
