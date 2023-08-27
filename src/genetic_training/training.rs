@@ -53,7 +53,7 @@ where
 {
     let nb_keep: usize = (nb_individus as f64 * survivial_rate) as usize;
 
-    let mut population: Vec<A> = reproduce(population, nb_individus * 100, mutation_rate);
+    let mut population: Vec<A> = reproduce(population, nb_individus * 10, mutation_rate);
 
     let s_time = Instant::now();
 
