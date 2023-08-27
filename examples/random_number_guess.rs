@@ -2,7 +2,7 @@ extern crate genetic_rl;
 
 use crate::genetic_rl::genetic_training::agent::Agent;
 use crate::genetic_rl::genetic_training::simulation::Simulation;
-use crate::genetic_rl::genetic_training::training::training_from_scratch;
+use crate::genetic_rl::genetic_training::training::training_from_checkpoint;
 use rand::Rng;
 
 #[derive(Clone)]
@@ -38,49 +38,40 @@ impl Agent for TestAgent {
 }
 
 #[derive(Clone)]
-struct TestSimulation<A: Agent> {
-    agent: A,
+struct TestSimulation {
     target: f64,
     obs: f64,
 }
 
-unsafe impl<A: Agent> Send for TestSimulation<A> {}
-unsafe impl<A: Agent> Sync for TestSimulation<A> {}
+impl Simulation for TestSimulation {
+    
 
-impl<A: Agent> Simulation<A> for TestSimulation<A> {
-    fn new(agent: A) -> Self {
-        let random_number = rand::thread_rng().gen_range(-100.0..=100.0);
-        println!("Number to guess: {}", random_number);
-        TestSimulation {
-            agent,
-            target: random_number,
-            obs: random_number,
-        }
-    }
-
-    fn evaluate_agent(&mut self) -> f64 {
-        let mut agent = self.agent.clone();
+    fn evaluate_agent<A>(&self, agent: &mut A) -> f64
+    where
+        A: Agent,
+    {
+        let mut agent = agent.clone();
         let fitness = -(agent.step(&vec![])[0][0] - self.obs).abs();
 
         fitness
     }
 
-    fn get_agent(&self) -> A {
-        self.agent.clone()
-    }
-
-    fn new_env(&self, agent: A) -> Self {
-        TestSimulation {
-            agent,
-            target: self.target,
-            obs: self.obs,
-        }
-    }
-
     fn on_generation(&mut self, generation_number: usize) {
         let ampl = 1. / (generation_number + 1) as f64;
         let random_number = rand::thread_rng().gen_range(-ampl..=ampl);
-        self.obs = self.target + random_number
+        self.obs = self.target + random_number;
+        println!("Generation observation: {}", self.obs);
+    }
+}
+
+impl TestSimulation {
+    fn new() -> Self {
+        let random_number = rand::thread_rng().gen_range(-100.0..=100.0);
+        println!("Number to guess: {}", random_number);
+        TestSimulation {
+            target: random_number,
+            obs: random_number,
+        }
     }
 }
 
@@ -92,7 +83,13 @@ pub fn main() {
     let mutation_rate: f64 = 1.;
     let mutation_decay: f64 = 0.99;
 
-    let population = training_from_scratch::<TestAgent, TestSimulation<TestAgent>>(
+    let mut simulation = TestSimulation::new();
+
+    let mut population: Vec<TestAgent> = (0..nb_individus).map(|_| TestAgent::new()).collect();
+
+    population = training_from_checkpoint::<TestAgent, TestSimulation>(
+        population,
+        &mut simulation,
         nb_individus,
         nb_generation,
         survivial_rate,

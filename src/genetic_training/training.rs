@@ -2,28 +2,23 @@ use crate::genetic_training::agent::Agent;
 use crate::genetic_training::simulation::Simulation;
 
 use rayon::prelude::*;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Instant;
 
-fn run_generation<A, S>(population: Vec<A>, simulation: &S) -> Vec<(A, f64)>
+fn run_generation<A, S>(population: Vec<A>, simulation: Arc<S>) -> Vec<(A, f64)>
 where
     A: Agent,
-    S: Simulation<A>,
+    S: Simulation,
 {
-    let simulations: Vec<Arc<Mutex<S>>> = population
-        .iter()
-        .map(|pop| Arc::new(Mutex::new(simulation.new_env(pop.clone()))))
-        .collect();
-
-    let mut results: Vec<(A, f64)> = simulations
+    let results: Vec<(A, f64)> = population
         .par_iter()
-        .map(|simulation| {
-            let mut simulation = simulation.lock().unwrap();
-            let fitness = simulation.evaluate_agent();
-            let ag = simulation.get_agent();
-            (ag, fitness)
+        .map(|agent| {
+            let fitness = simulation.evaluate_agent(&mut agent.clone());
+            (agent.clone(), fitness) // Clone agent for the result tuple
         })
         .collect();
+
+    let mut results = results; // Move results to sort them
 
     results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
 
@@ -54,7 +49,7 @@ pub fn training_from_checkpoint<A, S>(
 ) -> Vec<A>
 where
     A: Agent,
-    S: Simulation<A>,
+    S: Simulation,
 {
     let nb_keep: usize = (nb_individus as f64 * survivial_rate) as usize;
 
@@ -70,7 +65,9 @@ where
             gen,
             (gen_mutation_rate * 10000.0).round() / 10000.0
         );
-        let results = run_generation(population, simulation);
+        let sim = Arc::new(simulation.clone());
+
+        let results = run_generation(population, sim);
 
         let surviviors: Vec<(A, f64)> = results.into_iter().take(nb_keep).collect();
 
@@ -109,6 +106,7 @@ where
     population
 }
 
+/* 
 pub fn training_from_scratch<A, S>(
     nb_individus: usize,
     nb_generation: usize,
@@ -135,3 +133,4 @@ where
         mutation_decay,
     )
 }
+*/
