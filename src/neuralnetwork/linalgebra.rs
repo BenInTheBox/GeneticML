@@ -1,15 +1,29 @@
 use rand::Rng;
 
 pub fn w_dot_x(weights: &Vec<Vec<f64>>, inputs: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
-    inputs
-        .iter()
-        .map(|batch| {
-            weights
-                .iter()
-                .map(|weight| batch.iter().zip(weight.iter()).map(|(&x, &w)| x * w).sum())
-                .collect()
-        })
-        .collect()
+    let mut result = Vec::with_capacity(inputs.len());
+
+    for i in 0..inputs.len() {
+        let mut row = Vec::with_capacity(weights.len());
+
+        for j in 0..weights.len() {
+            let mut sum = 0.0;
+
+            unsafe {
+                let input_row = &inputs[i];
+                let weight_row = &weights[j];
+                for k in 0..input_row.len() {
+                    sum += *input_row.get_unchecked(k) * *weight_row.get_unchecked(k);
+                }
+            }
+
+            row.push(sum);
+        }
+
+        result.push(row);
+    }
+
+    result
 }
 
 pub fn m_addition(m1: &Vec<Vec<f64>>, m2: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
