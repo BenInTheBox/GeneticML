@@ -21,8 +21,8 @@ unsafe impl Sync for NeuralNet {}
 impl Agent for NeuralNet {
     fn new() -> Self {
         NeuralNet {
-            layer1: GRULayer::new(1, 4),
-            layer2: GRULayer::new(4, 3),
+            layer1: GRULayer::new(1, 5),
+            layer2: GRULayer::new(5, 3),
             layer3: LinearLayer::new(3, 1),
         }
     }
@@ -96,7 +96,7 @@ impl Simulation for Timeserie {
 impl Timeserie {
 
     fn new() -> Self {
-        let dt: f64 = 1. / 4.;
+        let dt: f64 = 1. / 6.;
         let amplitude: f64 = 0.3;
         let total_steps: usize = (100. / dt) as usize;
 
