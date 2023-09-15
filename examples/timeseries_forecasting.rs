@@ -21,9 +21,9 @@ unsafe impl Sync for NeuralNet {}
 impl Agent for NeuralNet {
     fn new() -> Self {
         NeuralNet {
-            layer1: GRULayer::new(1, 5),
-            layer2: GRULayer::new(5, 3),
-            layer3: LinearLayer::new(3, 1),
+            layer1: GRULayer::new(1, 7),
+            layer2: GRULayer::new(7, 5),
+            layer3: LinearLayer::new(5, 1),
         }
     }
 
@@ -98,10 +98,10 @@ impl Timeserie {
     fn new() -> Self {
         let dt: f64 = 1. / 6.;
         let amplitude: f64 = 0.3;
-        let total_steps: usize = (100. / dt) as usize;
+        let total_steps: usize = (150. / dt) as usize;
 
         let timeserie: Vec<f64> = (0..total_steps)
-            .map(|step| amplitude * ((step as f64 * dt).sin() + (step as f64 * dt * 2.).sin()))
+            .map(|step| amplitude * ((step as f64 * dt).sin() + (step as f64 * dt * 2.).sin()) + 0.05 * (step as f64 * dt * 8.1).sin() + 0.02 * (step as f64 * dt * 16.1).sin())
             .collect();
 
         Timeserie {
@@ -205,12 +205,12 @@ impl Timeserie {
 }
 
 pub fn main() {
-    let nb_generation: usize = 600;
+    let nb_generation: usize = 800;
     let nb_individus: usize = 1000;
     let survivial_rate: f64 = 0.02;
 
     let mutation_rate: f64 = 1.5;
-    let mutation_decay: f64 = 0.996;
+    let mutation_decay: f64 = 0.998;
 
     let mut simulation = Timeserie::new();
     let mut population: Vec<NeuralNet> = (0..nb_individus).map(|_| NeuralNet::new()).collect();
