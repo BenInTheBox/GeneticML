@@ -21,8 +21,8 @@ unsafe impl Sync for NeuralNet {}
 impl Agent for NeuralNet {
     fn new() -> Self {
         NeuralNet {
-            layer1: GRULayer::new(1, 7),
-            layer2: GRULayer::new(7, 5),
+            layer1: GRULayer::new(1, 7, 1),
+            layer2: GRULayer::new(7, 5, 1),
             layer3: LinearLayer::new(5, 1),
         }
     }

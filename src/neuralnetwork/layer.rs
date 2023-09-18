@@ -55,7 +55,7 @@ pub struct GRULayer {
 }
 
 impl GRULayer {
-    pub fn new(input_size: usize, output_size: usize) -> Self {
+    pub fn new(input_size: usize, output_size: usize, batch_size: usize) -> Self {
         let w_reset = w_random_init(input_size, output_size);
         let u_reset = w_random_init(output_size, output_size);
         let b_reset = vec![0.0; output_size];
@@ -68,7 +68,7 @@ impl GRULayer {
         let u_candidate = w_random_init(output_size, output_size);
         let b_candidate = vec![0.0; output_size];
 
-        let hidden_state = vec![vec![0.0; output_size]; input_size];
+        let hidden_state = vec![vec![0.0; output_size]; batch_size];
 
         GRULayer {
             w_reset,
