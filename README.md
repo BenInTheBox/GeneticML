@@ -10,58 +10,66 @@ The lib is designed around two main trait:
 ### Agent
 The Agent is the object interacting with the simulation. It is the object to be optimized.
 ```rs
-pub trait Agent: Clone + Copy + Send + Sync + 'static {
-    fn new() -> Self;
-    fn step(&mut self, input: Vec<f64>) -> Vec<f64>;
+pub trait Agent: Clone + Send + Sync + 'static {
+    fn step(&mut self, input: &Vec<Vec<f64>>) -> Vec<Vec<f64>>;
     fn reset(&mut self);
     fn mutate(&self, mutation_rate: f64) -> Self;
 }
 ```
+Step method dimensions:\
+Input: $M_{batch_size \times input_size}$\
+Output: $M_{batch_size \times output_size}$
+
 ### Simulation
-The Simulation is the object responsible of simulating the environement and evaluating the agents.
+The Simulation is the object responsible of simulating the environment and evaluating the agents.
 ```rs
-pub trait Simulation<A: Agent>: Clone + Send + Sync + 'static {
-    fn new(agent: A) -> Self;
-    fn evaluate_agent(&mut self) -> f64;
-    fn get_agent(&self) -> A;
-    fn new_env(&self, agent: A) -> Self;
+pub trait Simulation: Clone + Send + Sync + 'static {
+    fn evaluate_agent<A>(&self, agent: &mut A) -> f64
+    where
+        A: Agent;
+
     fn on_generation(&mut self, generation_number: usize);
 }
 ```
 
-### Training
-There are two training functions:
-- Training from scratch
-    ```rs
-    pub fn training_from_scratch<A, S>(
-    nb_individus: usize, 
-    nb_generation: usize, 
-    survivial_rate: f64, 
-    mutation_rate: f64, 
-    mutation_decay: f64) 
-    -> Vec<A>
-    where
-    A: Agent,
-    S: Simulation<A>
-    ```
-- Training from checkpoint
-    This training is designed to train from a checkpoint. It is can be used for transfer learning or re-training in order to handle data drift.
-    ```rs
-    pub fn training_from_checkpoint<A, S>(
-    population: Vec<A>,
-    simulation: &mut S,
-    nb_individus: usize, 
-    nb_generation: usize, 
-    survivial_rate: f64, 
-    mutation_rate: f64, 
-    mutation_decay: f64) 
-    -> Vec<A>
+### Neural network implementation
+
+The agents can take an form but since it is commun to use neural networks some layers and activation functions are already implemented.
+
+The layers available for the moment are:
+- Linear
+- GRU
+
+All layers are serializable and deserializable.
+
+And the activation functions:
+- Relu
+- Sigmoid
+- Tanh
+
+For more information see the xornot or timeseries forecasting example.
+
+## Training
+The training is made from a checkpoint. This checkpoint is a vector of Agent. It can be used with random agents for a training from scratch or with trained agents for transfer learning.
+
+```rs
+pub fn training_from_checkpoint<A, S>(
+population: Vec<A>,
+simulation: &mut S,
+nb_individus: usize,
+nb_generation: usize,
+survivial_rate: f64,
+mutation_rate: f64,
+mutation_decay: f64,
+    ) -> Vec<A>
     where
         A: Agent,
-        S: Simulation<A>
-    ```
+        S: Simulation
+```
 
 ## Examples
+
+Here are some implementation examples. These examples are only dedicated to show use to use the library. For all of them, a gradient or analytical aproach it better.
 
 ### Random Number Guesser
 
@@ -127,4 +135,12 @@ Trival example to show the use of the neural network module.
 
 ```console
 cargo run --example xornot
+```
+
+### Timeseries forecasting
+
+Timeserie forecsting example:
+
+```console
+cargo run --release --example timeseries_forecasting
 ```

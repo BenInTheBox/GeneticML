@@ -17,12 +17,6 @@ unsafe impl Send for NeuralNet {}
 unsafe impl Sync for NeuralNet {}
 
 impl Agent for NeuralNet {
-    fn new() -> Self {
-        NeuralNet {
-            layer1: LinearLayer::new(2, 2),
-            layer2: LinearLayer::new(2, 1),
-        }
-    }
 
     fn reset(&mut self) {}
 
@@ -42,6 +36,15 @@ impl Agent for NeuralNet {
     }
 }
 
+impl NeuralNet {
+    fn new() -> Self {
+        NeuralNet {
+            layer1: LinearLayer::new(2, 2),
+            layer2: LinearLayer::new(2, 1),
+        }
+    }
+}
+
 #[derive(Clone)]
 struct XorNot {
     pub inputs: Vec<Vec<f64>>,
@@ -49,7 +52,6 @@ struct XorNot {
 }
 
 impl Simulation for XorNot {
-
     fn evaluate_agent<A>(&self, agent: &mut A) -> f64
     where
         A: Agent,
@@ -92,10 +94,10 @@ pub fn main() {
         mutation_decay,
     );
 
-    println!("{:?}", population[0].layer1.weights);
-    println!("{:?}", population[0].layer1.bias);
-    println!("{:?}", population[0].layer2.weights);
-    println!("{:?}", population[0].layer2.bias);
+    println!("Layer 1 weights: {:?}", population[0].layer1.weights);
+    println!("Layer 1 bias: {:?}", population[0].layer1.bias);
+    println!("Layer 2 weights: {:?}", population[0].layer2.weights);
+    println!("Layer 2 biass: {:?}", population[0].layer2.bias);
 
-    println!("{:?}", population[0].step(&simulation.targets));
+    println!("\nPredictions: {:?}", population[0].step(&simulation.targets));
 }

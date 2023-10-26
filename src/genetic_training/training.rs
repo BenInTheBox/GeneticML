@@ -105,32 +105,3 @@ where
 
     population
 }
-
-/* 
-pub fn training_from_scratch<A, S>(
-    nb_individus: usize,
-    nb_generation: usize,
-    survivial_rate: f64,
-    mutation_rate: f64,
-    mutation_decay: f64,
-) -> Vec<A>
-where
-    A: Agent,
-    S: Simulation<A>,
-{
-    let model_agent = A::new();
-    let mut sim = S::new(model_agent);
-
-    let population: Vec<A> = (0..nb_individus).map(|_| A::new()).collect();
-
-    training_from_checkpoint::<A, S>(
-        population,
-        &mut sim,
-        nb_individus,
-        nb_generation,
-        survivial_rate,
-        mutation_rate,
-        mutation_decay,
-    )
-}
-*/
