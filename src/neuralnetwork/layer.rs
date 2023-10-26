@@ -1,10 +1,12 @@
+use serde_derive::{Serialize, Deserialize};
+
 use crate::neuralnetwork::activation::{sigmoid, tanh};
 use crate::neuralnetwork::linalgebra::{
     add_bias, m_addition, m_element_mul, m_substraction, mutate_1d, mutate_2d, w_dot_x,
     w_random_init,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct LinearLayer {
     pub weights: Vec<Vec<f64>>,
     pub bias: Vec<f64>,
@@ -37,7 +39,7 @@ impl LinearLayer {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct GRULayer {
     pub w_reset: Vec<Vec<f64>>,
     pub u_reset: Vec<Vec<f64>>,

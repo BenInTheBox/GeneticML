@@ -25,19 +25,6 @@ unsafe impl Send for Controller {}
 unsafe impl Sync for Controller {}
 
 impl Agent for Controller {
-    fn new() -> Self {
-        let x_coeff = rand::thread_rng().gen_range(-1.0..=1.0);
-        let x_dot_coeff = rand::thread_rng().gen_range(-1.0..=1.0);
-        let theta_coeff = rand::thread_rng().gen_range(-1.0..=1.0);
-        let theta_dot_coeff = rand::thread_rng().gen_range(-1.0..=1.0);
-        Controller {
-            x_coeff,
-            x_dot_coeff,
-            theta_coeff,
-            theta_dot_coeff,
-        }
-    }
-
     fn step(&mut self, input: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
         let mut a = (self.x_coeff * input[0][0])
             + (self.x_dot_coeff * input[0][1])
@@ -64,17 +51,31 @@ impl Agent for Controller {
     }
 }
 
+impl Controller {
+    fn new() -> Self {
+        let x_coeff = rand::thread_rng().gen_range(-1.0..=1.0);
+        let x_dot_coeff = rand::thread_rng().gen_range(-1.0..=1.0);
+        let theta_coeff = rand::thread_rng().gen_range(-1.0..=1.0);
+        let theta_dot_coeff = rand::thread_rng().gen_range(-1.0..=1.0);
+        Controller {
+            x_coeff,
+            x_dot_coeff,
+            theta_coeff,
+            theta_dot_coeff,
+        }
+    }
+}
+
 #[derive(Clone)]
 struct InvertedPendulum {
-    m: f64,         // Mass of the pendulum
-    m_kart: f64,    // Mass of the cart
-    l: f64,         // Length of the pendulum
-    g: f64,         // Acceleration due to gravity
+    m: f64,      // Mass of the pendulum
+    m_kart: f64, // Mass of the cart
+    l: f64,      // Length of the pendulum
+    g: f64,      // Acceleration due to gravity
     starting_angle: f64,
 }
 
 impl Simulation for InvertedPendulum {
-
     fn evaluate_agent<A>(&self, agent: &mut A) -> f64
     where
         A: Agent,
@@ -89,15 +90,14 @@ impl Simulation for InvertedPendulum {
 }
 
 impl InvertedPendulum {
-
     fn new() -> Self {
         let starting_angle = rand::thread_rng().gen_range(-MAX_STARTING_ANGLE..=MAX_STARTING_ANGLE);
         println!("Starting_angle: {:.2} deg", starting_angle.to_degrees());
         InvertedPendulum {
-            m: 0.25,               // Mass of the pendulum
-            m_kart: 0.25,          // Mass of the cart
-            l: 0.1,                // Length of the pendulum
-            g: 9.81,               // Acceleration due to gravity
+            m: 0.25,      // Mass of the pendulum
+            m_kart: 0.25, // Mass of the cart
+            l: 0.1,       // Length of the pendulum
+            g: 9.81,      // Acceleration due to gravity
             starting_angle,
         }
     }
@@ -116,8 +116,8 @@ impl InvertedPendulum {
         let mut theta: f64 = self.starting_angle;
         let mut x_dot: f64 = 0.;
         let mut theta_dot: f64 = 0.;
-        let mut theta_acc: f64 = 0.;
-        let mut x_acc: f64 = 0.;
+        let mut _x_acc: f64 = 0.;
+        let mut _theta_acc: f64 = 0.;
 
         for step in 0..total_steps {
             let x_error = 0. - x;
@@ -126,26 +126,20 @@ impl InvertedPendulum {
             cum_squared_error_x += x_error.powf(2.);
             cum_squared_error_theta += theta_error.powf(2.);
 
-            let a = agent.step(&vec![vec![
-                x * 10.,
-                x_dot,
-                theta * 3.,
-                theta_dot,
-            ]])[0][0];
+            let a = agent.step(&vec![vec![x * 10., x_dot, theta * 3., theta_dot]])[0][0];
             cum_squared_u += a.powf(2.);
-            
-            // Update state
-            x_acc = (self.m * self.l * theta_dot.powi(2) * f64::sin(theta)
-            - self.m * self.g * f64::cos(theta) * f64::sin(theta))
-            / (self.m_kart + self.m * (1.0 - f64::cos(theta).powi(2)));
 
-            theta_acc = (self.g * f64::sin(theta)
-                + f64::cos(theta)
-                    * (-a - self.m * self.l * theta_dot.powi(2) * f64::sin(theta)))
+            // Update state
+            _x_acc = (self.m * self.l * theta_dot.powi(2) * f64::sin(theta)
+                - self.m * self.g * f64::cos(theta) * f64::sin(theta))
+                / (self.m_kart + self.m * (1.0 - f64::cos(theta).powi(2)));
+
+            _theta_acc = (self.g * f64::sin(theta)
+                + f64::cos(theta) * (-a - self.m * self.l * theta_dot.powi(2) * f64::sin(theta)))
                 / (self.l * (self.m_kart + self.m * (1.0 - f64::cos(theta).powi(2))));
 
-            x_dot += x_acc * DT;
-            theta_dot += theta_acc * DT;
+            x_dot += _x_acc * DT;
+            theta_dot += _theta_acc * DT;
             x += x_dot * DT;
             theta += theta_dot * DT;
 

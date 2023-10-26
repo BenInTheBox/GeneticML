@@ -1,5 +1,7 @@
 extern crate genetic_rl;
-use plotters::prelude::*;
+
+use serde_derive::{Serialize, Deserialize};
+use std::fs;
 
 use crate::genetic_rl::genetic_training::agent::Agent;
 use crate::genetic_rl::genetic_training::simulation::Simulation;
@@ -8,7 +10,7 @@ use crate::genetic_rl::neuralnetwork::activation::tanh;
 use crate::genetic_rl::neuralnetwork::layer::{GRULayer, LinearLayer};
 use crate::genetic_rl::neuralnetwork::metrics::calculate_mse_time_series;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct NeuralNet {
     layer1: GRULayer,
     layer2: GRULayer,
@@ -19,14 +21,6 @@ unsafe impl Send for NeuralNet {}
 unsafe impl Sync for NeuralNet {}
 
 impl Agent for NeuralNet {
-    fn new() -> Self {
-        NeuralNet {
-            layer1: GRULayer::new(1, 7, 1),
-            layer2: GRULayer::new(7, 5, 1),
-            layer3: LinearLayer::new(5, 1),
-        }
-    }
-
     fn reset(&mut self) {
         self.layer1.reset();
         self.layer2.reset();
@@ -50,6 +44,16 @@ impl Agent for NeuralNet {
     }
 }
 
+impl NeuralNet {
+    fn new() -> Self {
+        NeuralNet {
+            layer1: GRULayer::new(1, 7, 1),
+            layer2: GRULayer::new(7, 5, 1),
+            layer3: LinearLayer::new(5, 1),
+        }
+    }
+}
+
 #[derive(Clone)]
 struct Timeserie {
     pub inputs: Vec<Vec<Vec<f64>>>,
@@ -57,7 +61,6 @@ struct Timeserie {
 }
 
 impl Simulation for Timeserie {
-
     fn evaluate_agent<A>(&self, agent: &mut A) -> f64
     where
         A: Agent,
@@ -94,14 +97,17 @@ impl Simulation for Timeserie {
 }
 
 impl Timeserie {
-
     fn new() -> Self {
         let dt: f64 = 1. / 6.;
         let amplitude: f64 = 0.3;
-        let total_steps: usize = (150. / dt) as usize;
+        let total_steps: usize = (100. / dt) as usize;
 
         let timeserie: Vec<f64> = (0..total_steps)
-            .map(|step| amplitude * ((step as f64 * dt).sin() + (step as f64 * dt * 2.).sin()) + 0.05 * (step as f64 * dt * 8.1).sin() + 0.02 * (step as f64 * dt * 16.1).sin())
+            .map(|step| {
+                amplitude * ((step as f64 * dt).sin() + (step as f64 * dt * 2.).sin())
+                    + 0.05 * (step as f64 * dt * 8.1).sin()
+                    + 0.02 * (step as f64 * dt * 16.1).sin()
+            })
             .collect();
 
         Timeserie {
@@ -114,7 +120,12 @@ impl Timeserie {
         }
     }
 
-    pub fn forecast<A>(&self, agent: &mut A, horizon: usize, current_input: &Vec<Vec<f64>>) -> Vec<Vec<Vec<f64>>> 
+    pub fn forecast<A>(
+        &self,
+        agent: &mut A,
+        horizon: usize,
+        current_input: &Vec<Vec<f64>>,
+    ) -> Vec<Vec<Vec<f64>>>
     where
         A: Agent,
     {
@@ -129,7 +140,7 @@ impl Timeserie {
         forecast
     }
 
-    pub fn test_forecast<A>(&mut self, agent: &mut A, horizon: usize, forecast_start: usize) 
+    pub fn test_forecast<A>(&mut self, agent: &mut A, horizon: usize, forecast_start: usize)
     where
         A: Agent,
     {
@@ -151,61 +162,21 @@ impl Timeserie {
 
         println!("\nRecursive prediction of {} periods horizon", horizon);
 
-        let y: Vec<(f32, f32)> = targets
+        let y: Vec<f64> = targets.iter().map(|x| x[0][0]).collect();
+        let y_hat: Vec<f64> = forecast.iter().map(|x| x[0][0]).collect();
+
+        let error: Vec<f64> = y
             .iter()
-            .enumerate()
-            .map(|(i, x)| (i as f32, x[0][0] as f32))
+            .zip(y_hat.iter())
+            .map(|(x, x_hat)| x_hat - x)
             .collect();
-        let y_hat: Vec<(f32, f32)> = forecast
-            .iter()
-            .enumerate()
-            .map(|(i, x)| (i as f32, x[0][0] as f32))
-            .collect();
-        let name = format!("forecast_start_{}.png", forecast_start);
 
-        let root_area = BitMapBackend::new(&name, (1024, 768)).into_drawing_area();
-
-        root_area.fill(&WHITE).unwrap();
-
-        let root_area = root_area.titled("Backtest", ("sans-serif", 60)).unwrap();
-
-        let (upper, _lower) = root_area.split_vertically(512);
-
-        let mut cc = ChartBuilder::on(&upper)
-            .margin(5)
-            .set_all_label_area_size(50)
-            .caption("Target vs Forecast", ("sans-serif", 40))
-            .build_cartesian_2d(0f32..(y.len() as f32), -0.6f32..0.6f32)
-            .unwrap();
-
-        cc.configure_mesh()
-            .x_labels(20)
-            .y_labels(10)
-            .disable_mesh()
-            .x_label_formatter(&|v| format!("{:.1}", v))
-            .y_label_formatter(&|v| format!("{:.1}", v))
-            .draw()
-            .unwrap();
-
-        cc.draw_series(LineSeries::new(y, &RED))
-            .unwrap()
-            .label("Target")
-            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
-
-        cc.draw_series(LineSeries::new(y_hat, &BLUE))
-            .unwrap()
-            .label("Prediction")
-            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUE));
-
-        cc.configure_series_labels()
-            .border_style(&BLACK)
-            .draw()
-            .unwrap();
+        println!("Error history: {:?}", error);
     }
 }
 
 pub fn main() {
-    let nb_generation: usize = 800;
+    let nb_generation: usize = 100;
     let nb_individus: usize = 1000;
     let survivial_rate: f64 = 0.02;
 
@@ -232,4 +203,21 @@ pub fn main() {
     sim.test_forecast(&mut population[0], horizon, 40);
     sim.test_forecast(&mut population[0], horizon, 50);
     sim.test_forecast(&mut population[0], horizon, 60);
+
+    // let best_agent_json = serde_json::to_string(&population[0]).unwrap();
+    // if let Err(err) = fs::write("best_agent.json", &best_agent_json) {
+    //     eprintln!("Error writing to file: {}", err);
+    // } else {
+    //     println!("JSON data written");
+    // }
+
+    // let best_agent_str = match fs::read_to_string("best_agent.json") {
+    //     Ok(data) => data,
+    //     Err(err) => {
+    //         eprintln!("Error reading file: {}", err);
+    //         return;
+    //     }
+    // };
+
+    // let deserialized_agent: NeuralNet = serde_json::from_str(&best_agent_str).unwrap();
 }

@@ -60,7 +60,9 @@ pub fn mutate_2d(weights: &mut Vec<Vec<f64>>, mutation_rate: f64) {
     let mut rng = rand::thread_rng();
     for weight in weights.iter_mut() {
         for w in weight.iter_mut() {
-            if true /*rng.gen::<f64>() < 0.1*/ {
+            if true
+            /*rng.gen::<f64>() < 0.1*/
+            {
                 let pos_mult = if *w > 0. {
                     (1. - (*w / MAX_WEIGHT)).max(0.)
                 } else {
