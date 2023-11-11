@@ -30,7 +30,8 @@ impl LinearLayer {
 
     pub fn mutate(&self, mutation_rate: f64) -> Self {
         let mut new_layer = self.clone();
-        mutate_2d(&mut new_layer.weights, mutation_rate);
+        let coef = (2.0 / (self.weights.len() + self.weights[0].len()) as f64).sqrt();
+        mutate_2d(&mut new_layer.weights, mutation_rate * coef);
         mutate_1d(&mut new_layer.bias, mutation_rate);
 
         new_layer
@@ -122,9 +123,10 @@ impl GRULayer {
 
     pub fn mutate(&self, mutation_rate: f64) -> Self {
         let mut new_layer = self.clone();
-        mutate_2d(&mut new_layer.w_reset, mutation_rate);
-        mutate_2d(&mut new_layer.w_update, mutation_rate);
-        mutate_2d(&mut new_layer.w_candidate, mutation_rate);
+        let coef = (1.0 / (self.w_reset.len() + self.w_reset[0].len()) as f64).sqrt();
+        mutate_2d(&mut new_layer.w_reset, mutation_rate * coef);
+        mutate_2d(&mut new_layer.w_update, mutation_rate * coef);
+        mutate_2d(&mut new_layer.w_candidate, mutation_rate * coef);
 
         mutate_1d(&mut new_layer.b_reset, mutation_rate);
         mutate_1d(&mut new_layer.b_update, mutation_rate);
