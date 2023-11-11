@@ -14,12 +14,6 @@ unsafe impl Send for TestAgent {}
 unsafe impl Sync for TestAgent {}
 
 impl Agent for TestAgent {
-    fn new() -> Self {
-        let random_number = rand::thread_rng().gen_range(-100.0..=100.0) as f64;
-        TestAgent {
-            guess: random_number,
-        }
-    }
 
     fn step(&mut self, _input: &Vec<Vec<f64>>) -> Vec<Vec<f64>> {
         //println!("Guess: {}", self.guess);
@@ -37,15 +31,22 @@ impl Agent for TestAgent {
     }
 }
 
+impl TestAgent {
+    fn new() -> Self {
+        let random_number = rand::thread_rng().gen_range(-100.0..=100.0) as f64;
+        TestAgent {
+            guess: random_number,
+        }
+    }
+}
+
 #[derive(Clone)]
 struct TestSimulation {
-    target: f64,
+    pub target: f64,
     obs: f64,
 }
 
 impl Simulation for TestSimulation {
-    
-
     fn evaluate_agent<A>(&self, agent: &mut A) -> f64
     where
         A: Agent,
@@ -98,7 +99,7 @@ pub fn main() {
     );
 
     println!(
-        "Final guess: {}",
-        population[0].to_owned().step(&vec![])[0][0]
+        "\n\nFinal guess: {}\nTarget: {}",
+        population[0].to_owned().step(&vec![])[0][0], simulation.target
     );
 }
